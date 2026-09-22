@@ -28,10 +28,11 @@ Open `http://localhost:3000`.
 
 ### 3. Deployen naar Vercel
 
-1. Maak een GitHub-repo aan en push deze map ernaartoe.
-2. Maak een account op [vercel.com](https://vercel.com), importeer die repo.
-3. Zet dezelfde 2 env vars in Vercel (Project Settings → Environment Variables).
-4. Deploy.
+1. Publiceer deze map als repo op GitHub (bijv. via GitHub Desktop: **Publish repository**).
+2. Maak een account op [vercel.com](https://vercel.com), koppel je GitHub-account.
+3. **Add New → Project**, kies de gepubliceerde repo.
+4. Zet dezelfde 2 env vars in Vercel (Project Settings → Environment Variables).
+5. Elke push naar `main` (via GitHub Desktop: commit + push) triggert automatisch een nieuwe deploy.
 
 ## Wat er wel/niet in zit
 
