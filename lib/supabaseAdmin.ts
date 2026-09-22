@@ -4,12 +4,12 @@ import { createClient } from "@supabase/supabase-js";
 // security. Never import this from a client component — it must only run
 // on the server (API routes, server components, server actions).
 export function supabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
     throw new Error(
-      "Supabase env vars ontbreken. Zet NEXT_PUBLIC_SUPABASE_URL en SUPABASE_SERVICE_ROLE_KEY in .env.local."
+      "Supabase env vars ontbreken. Zet SUPABASE_URL en SUPABASE_SERVICE_ROLE_KEY in .env.local."
     );
   }
 
