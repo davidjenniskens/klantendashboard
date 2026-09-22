@@ -1,0 +1,796 @@
+<title>Ontwerpdossier</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Special+Elite&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --paper: #eef0ee;
+    --paper-raised: #ffffff;
+    --paper-sunken: #e2e5e1;
+    --ink: #1c2321;
+    --ink-soft: #57625d;
+    --ink-faint: #8a938e;
+    --line: #c9cdc6;
+    --accent: #b23a2f;
+    --accent-ink: #fdf8f2;
+    --stamp-bg: #1c2321;
+    --stamp-ink: #eef0ee;
+    --shadow: rgba(28, 35, 33, 0.14);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #191d1b;
+      --paper-raised: #232a27;
+      --paper-sunken: #141716;
+      --ink: #edeee9;
+      --ink-soft: #a5aea8;
+      --ink-faint: #6c7570;
+      --line: #38403c;
+      --accent: #ff7a63;
+      --accent-ink: #191d1b;
+      --stamp-bg: #edeee9;
+      --stamp-ink: #191d1b;
+      --shadow: rgba(0, 0, 0, 0.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #191d1b;
+    --paper-raised: #232a27;
+    --paper-sunken: #141716;
+    --ink: #edeee9;
+    --ink-soft: #a5aea8;
+    --ink-faint: #6c7570;
+    --line: #38403c;
+    --accent: #ff7a63;
+    --accent-ink: #191d1b;
+    --stamp-bg: #edeee9;
+    --stamp-ink: #191d1b;
+    --shadow: rgba(0, 0, 0, 0.45);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    padding: 20px 16px 48px;
+  }
+  .app { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 14px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .stamp {
+    font-family: "Special Elite", "Courier New", monospace;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    background: var(--stamp-bg);
+    color: var(--stamp-ink);
+    padding: 5px 9px;
+    border-radius: 0;
+    transform: rotate(-2deg);
+    display: inline-block;
+  }
+  .client-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .client-input {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 0;
+    background: var(--paper-sunken);
+    color: var(--ink);
+    flex: 0 1 320px;
+  }
+  .client-input:focus { outline: none; border-color: var(--accent); }
+  .brand h1 {
+    font-family: "Special Elite", "Courier New", monospace;
+    font-weight: 400;
+    font-size: 22px;
+    margin: 0;
+    letter-spacing: 0.01em;
+  }
+
+  .btn-export, .btn-ghost {
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 0;
+    cursor: pointer;
+    border: 2px solid var(--ink);
+    padding: 10px 16px;
+    background: var(--ink);
+    color: var(--paper);
+    transition: transform 0.12s ease, opacity 0.12s ease;
+  }
+  .btn-export:hover, .btn-ghost:hover { transform: translateY(-1px); }
+  .btn-export:active, .btn-ghost:active { transform: translateY(0); }
+  .btn-export:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn-ghost:hover { border-color: var(--ink); }
+
+  .board {
+    display: grid;
+    grid-template-columns: 1.25fr 0.65fr 1.25fr;
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .board { grid-template-columns: 1fr; }
+  }
+
+  .col {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    padding: 14px;
+    box-shadow: 0 6px 16px var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+  .col-title {
+    font-family: "Special Elite", "Courier New", monospace;
+    font-weight: 400;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    margin: 0;
+    text-transform: uppercase;
+  }
+  .dropzone {
+    position: relative;
+    border: 2px dashed var(--line);
+    border-radius: 0;
+    min-height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    overflow: hidden;
+    background: var(--paper-sunken);
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .dropzone:hover, .dropzone:focus-visible { border-color: var(--accent); outline: none; }
+  .dropzone.dragover { border-color: var(--accent); background: var(--paper-raised); }
+  .dropzone-empty {
+    padding: 18px;
+    color: var(--ink-faint);
+    font-size: 13px;
+    line-height: 1.5;
+    pointer-events: none;
+  }
+  .dropzone-empty svg { display: block; margin: 0 auto 8px; opacity: 0.7; }
+
+  .thumb-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: center;
+    gap: 8px;
+    padding: 12px;
+    width: 100%;
+  }
+  .thumb {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    border-radius: 0;
+    overflow: hidden;
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    flex: 0 0 auto;
+  }
+  .thumb img { width: 100%; height: 100%; object-fit: contain; }
+  .thumb-remove {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 17px;
+    height: 17px;
+    border: none;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 9px;
+    line-height: 17px;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .field-label {
+    font-family: "Special Elite", "Courier New", monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  textarea.typewriter {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink);
+    background: var(--paper-sunken);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    padding: 10px 12px;
+    resize: vertical;
+    min-height: 110px;
+    width: 100%;
+  }
+  textarea.typewriter:focus { outline: none; border-color: var(--accent); }
+  .col-feedback textarea.feedback-area { min-height: 300px; }
+
+  .reflection-wrap {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    padding: 14px;
+    box-shadow: 0 6px 16px var(--shadow);
+  }
+  #reflectionBlock { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+  .footer-credit {
+    text-align: center;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+    padding-top: 6px;
+  }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--paper);
+    padding: 10px 16px;
+    border-radius: 0;
+    font-size: 13px;
+    box-shadow: 0 8px 20px var(--shadow);
+    z-index: 50;
+  }
+
+  /* Off-screen print sheet (A3 landscape), captured via html2canvas */
+  .print-sheet {
+    position: fixed;
+    left: -99999px;
+    top: 0;
+    width: 1587px;
+    height: 1123px;
+    background: #ffffff;
+    color: #17201d;
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    padding: 48px 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .print-sheet .p-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 3px solid #17201d;
+    padding-bottom: 14px;
+  }
+  .print-sheet .p-head h1 { font-family: "Special Elite", "Courier New", monospace; font-weight: 400; font-size: 30px; margin: 0; }
+  .print-sheet .p-head .p-date { font-family: "Courier New", Courier, monospace; font-size: 14px; color: #57625d; }
+  .print-sheet .p-board { display: grid; grid-template-columns: 1.25fr 0.65fr 1.25fr; gap: 26px; flex: 1; min-height: 0; }
+  .print-sheet .p-col { display: flex; flex-direction: column; gap: 12px; min-height: 0; min-width: 0; }
+  .print-sheet .p-col-title { font-family: "Special Elite", "Courier New", monospace; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; color: #57625d; margin: 0; }
+  .print-sheet .p-frame-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 14px; }
+  .print-sheet .p-frame {
+    position: relative;
+    flex: 0 0 auto;
+    max-width: 100%;
+  }
+  .print-sheet .p-frame img { display: block; width: 100%; -webkit-user-drag: none; user-select: none; }
+  .print-sheet .p-frame.empty {
+    width: 100%;
+    height: 150px;
+    border: 2px dashed #d8dbd5;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a7ada6;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 14px;
+  }
+  .print-sheet.in-preview .p-frame:not(.empty) { outline: 1px dashed rgba(23, 32, 29, 0.3); outline-offset: 2px; }
+  .print-sheet .p-resize-handle {
+    position: absolute;
+    right: -7px;
+    bottom: -7px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #b23a2f;
+    border: 2px solid #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    cursor: nwse-resize;
+    touch-action: none;
+  }
+  .print-sheet.in-preview { position: static; left: auto; }
+  .print-sheet .p-text {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 15px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .print-sheet .p-col.feedback .p-text { flex: 1; overflow: hidden; }
+  .print-sheet .p-reflection {
+    border-top: 1px solid #d8dbd5;
+    padding-top: 14px;
+  }
+  .print-sheet .p-reflection .p-col-title { color: #57625d; }
+  .print-sheet .p-footer {
+    text-align: center;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 12px;
+    color: #8a938e;
+    border-top: 1px solid #d8dbd5;
+    padding-top: 10px;
+  }
+
+  .btn-preview-fab {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 40;
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 0;
+    cursor: pointer;
+    border: 2px solid var(--ink);
+    padding: 12px 20px;
+    background: var(--paper-raised);
+    color: var(--ink);
+    box-shadow: 0 8px 20px var(--shadow);
+    transition: transform 0.12s ease;
+  }
+  .btn-preview-fab:hover { transform: translateY(-2px); }
+
+  .preview-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 23, 22, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 60;
+    padding: 24px;
+  }
+  .preview-panel {
+    position: relative;
+    background: var(--paper-raised);
+    border-radius: 0;
+    padding: 18px;
+    box-shadow: 0 20px 60px var(--shadow);
+    width: 98vw;
+    max-width: 98vw;
+    max-height: 97vh;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+  .preview-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .preview-hint {
+    margin: 0;
+    font-size: 12px;
+    color: var(--ink-soft);
+    text-align: center;
+    max-width: 640px;
+  }
+  .preview-sheet-host { overflow: hidden; flex: 0 0 auto; }
+  .preview-actions { display: flex; justify-content: flex-end; width: 100%; }
+</style>
+
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="stamp">DOSSIER</span>
+      <h1>Feedbackverwerking</h1>
+    </div>
+    <button class="btn-export" id="exportBtn">Exporteer als PDF (A3 liggend)</button>
+  </header>
+  <div class="client-row">
+    <label class="field-label" for="clientName">Klant</label>
+    <input type="text" id="clientName" class="client-input" placeholder="Naam van de klant">
+  </div>
+
+  <main class="board">
+    <section class="col col-original" aria-label="Origineel ontwerp">
+      <h2 class="col-title">01 — Origineel</h2>
+      <div class="dropzone" id="dropOriginal" tabindex="0" role="button" aria-label="Upload een of meer screenshots van het originele ontwerp">
+        <input type="file" id="fileOriginal" accept="image/*" multiple hidden>
+        <div class="dropzone-empty" id="emptyOriginal">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          Sleep screenshot(s) hierheen<br>of klik om te uploaden
+        </div>
+        <div class="thumb-grid" id="gridOriginal" hidden></div>
+      </div>
+      <label class="field-label" for="motivation">Motivatie</label>
+      <textarea class="typewriter" id="motivation" placeholder="Waarom is dit ontwerp zo gemaakt? Welke keuzes lagen eraan ten grondslag?"></textarea>
+    </section>
+
+    <section class="col col-feedback" aria-label="Feedback">
+      <h2 class="col-title">02 — Feedback</h2>
+      <textarea class="typewriter feedback-area" id="feedback" placeholder="Wat moet er beter, en waarom? Wees concreet."></textarea>
+    </section>
+
+    <section class="col col-new" aria-label="Eindresultaat">
+      <h2 class="col-title">03 — Eindresultaat</h2>
+      <div class="dropzone" id="dropNew" tabindex="0" role="button" aria-label="Upload een of meer screenshots van het eindresultaat">
+        <input type="file" id="fileNew" accept="image/*" multiple hidden>
+        <div class="dropzone-empty" id="emptyNew">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          Sleep screenshot(s) hierheen<br>of klik om te uploaden
+        </div>
+        <div class="thumb-grid" id="gridNew" hidden></div>
+      </div>
+      <label class="field-label" for="motivationNew">Motivatie</label>
+      <textarea class="typewriter" id="motivationNew" placeholder="Waarom is dit eindresultaat zo gemaakt? Welke keuzes lagen eraan ten grondslag?"></textarea>
+    </section>
+  </main>
+
+  <section class="reflection-wrap">
+    <button class="btn-ghost" id="toggleReflection">+ Reflectie toevoegen</button>
+    <div id="reflectionBlock" hidden>
+      <label class="field-label" for="reflection">Reflectie</label>
+      <textarea class="typewriter" id="reflection" placeholder="Wat neem je hieruit mee voor een volgend ontwerp?"></textarea>
+    </div>
+  </section>
+
+  <footer class="footer-credit">David Jenniskens — 500939455 — Klas 209 — Goldfizh Digital Agency</footer>
+</div>
+
+<button class="btn-preview-fab" id="previewBtn">Zie preview</button>
+
+<div class="preview-overlay" id="previewOverlay" hidden>
+  <div class="preview-panel">
+    <button class="preview-close" id="closePreview" aria-label="Sluiten">✕</button>
+    <p class="preview-hint">Sleep het rode bolletje rechtsonder aan een screenshot om het in verhouding groter of kleiner te maken — zo kan één screenshot de hele kolom pakken, of passen er meerdere naast elkaar.</p>
+    <div class="preview-sheet-host" id="previewSheetHost"></div>
+    <div class="preview-actions">
+      <button class="btn-export" id="previewExportBtn">Exporteer als PDF (A3 liggend)</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function () {
+  var originalImages = [];
+  var newImages = [];
+
+  function setupMultiDropzone(dropId, fileId, gridId, emptyId, images) {
+    var drop = document.getElementById(dropId);
+    var input = document.getElementById(fileId);
+    var grid = document.getElementById(gridId);
+    var empty = document.getElementById(emptyId);
+
+    function render() {
+      grid.innerHTML = '';
+      if (!images.length) {
+        empty.hidden = false;
+        grid.hidden = true;
+        return;
+      }
+      empty.hidden = true;
+      grid.hidden = false;
+      images.forEach(function (item, idx) {
+        var thumb = document.createElement('div');
+        thumb.className = 'thumb';
+        var img = document.createElement('img');
+        img.src = item.src;
+        img.alt = '';
+        var rm = document.createElement('button');
+        rm.type = 'button';
+        rm.className = 'thumb-remove';
+        rm.textContent = '✕';
+        rm.setAttribute('aria-label', 'Verwijder screenshot');
+        rm.addEventListener('click', function (e) {
+          e.stopPropagation();
+          images.splice(idx, 1);
+          render();
+        });
+        thumb.appendChild(img);
+        thumb.appendChild(rm);
+        grid.appendChild(thumb);
+      });
+    }
+
+    function addFiles(fileList) {
+      var files = Array.prototype.filter.call(fileList, function (f) { return f.type.indexOf('image/') === 0; });
+      if (!files.length) return;
+      var remaining = files.length;
+      files.forEach(function (file) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+          images.push({ src: e.target.result, w: 220, h: null });
+          remaining--;
+          if (remaining === 0) render();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    drop.addEventListener('click', function () { input.click(); });
+    drop.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); }
+    });
+    input.addEventListener('change', function () { addFiles(input.files); input.value = ''; });
+    ['dragenter', 'dragover'].forEach(function (evt) {
+      drop.addEventListener(evt, function (e) { e.preventDefault(); drop.classList.add('dragover'); });
+    });
+    ['dragleave', 'drop'].forEach(function (evt) {
+      drop.addEventListener(evt, function (e) { e.preventDefault(); drop.classList.remove('dragover'); });
+    });
+    drop.addEventListener('drop', function (e) { addFiles(e.dataTransfer.files); });
+
+    render();
+  }
+
+  setupMultiDropzone('dropOriginal', 'fileOriginal', 'gridOriginal', 'emptyOriginal', originalImages);
+  setupMultiDropzone('dropNew', 'fileNew', 'gridNew', 'emptyNew', newImages);
+
+  var toggleReflection = document.getElementById('toggleReflection');
+  var reflectionBlock = document.getElementById('reflectionBlock');
+  toggleReflection.addEventListener('click', function () {
+    var hidden = reflectionBlock.hidden;
+    reflectionBlock.hidden = !hidden;
+    toggleReflection.textContent = hidden ? '− Reflectie verbergen' : '+ Reflectie toevoegen';
+    if (hidden) document.getElementById('reflection').focus();
+  });
+
+  var toastEl = document.getElementById('toast');
+  var toastTimer = null;
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.hidden = true; }, 4200);
+  }
+
+  function esc(s) {
+    return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  var currentViewScale = 1;
+
+  function buildFrame(item, interactive) {
+    var frame = document.createElement('div');
+    frame.className = 'p-frame';
+    frame.style.width = item.w + 'px';
+    frame.style.height = item.h ? item.h + 'px' : 'auto';
+
+    var img = document.createElement('img');
+    img.src = item.src;
+    img.alt = '';
+    img.draggable = false;
+    img.style.height = item.h ? '100%' : 'auto';
+    frame.appendChild(img);
+
+    if (interactive) {
+      var handle = document.createElement('div');
+      handle.className = 'p-resize-handle';
+      handle.setAttribute('aria-label', 'Sleep om formaat aan te passen');
+      frame.appendChild(handle);
+
+      var dragging = false, startX = 0, startW = 0, startH = 0, ratio = 1, maxW = Infinity;
+      handle.addEventListener('pointerdown', function (e) {
+        e.stopPropagation();
+        dragging = true;
+        var rect = frame.getBoundingClientRect();
+        startX = e.clientX;
+        startW = rect.width / currentViewScale;
+        startH = rect.height / currentViewScale;
+        ratio = startW / startH;
+        maxW = frame.parentElement.clientWidth || Infinity;
+        handle.setPointerCapture(e.pointerId);
+      });
+      handle.addEventListener('pointermove', function (e) {
+        if (!dragging) return;
+        var dx = (e.clientX - startX) / currentViewScale;
+        var newW = Math.min(maxW, Math.max(40, startW + dx));
+        var newH = newW / ratio;
+        item.w = newW;
+        item.h = newH;
+        frame.style.width = newW + 'px';
+        frame.style.height = newH + 'px';
+        img.style.height = '100%';
+      });
+      ['pointerup', 'pointercancel'].forEach(function (evt) {
+        handle.addEventListener(evt, function () { dragging = false; });
+      });
+    }
+
+    return frame;
+  }
+
+  function renderFrameRow(container, images, interactive) {
+    container.innerHTML = '';
+    if (!images.length) {
+      var empty = document.createElement('div');
+      empty.className = 'p-frame empty';
+      empty.textContent = 'Geen screenshot toegevoegd';
+      container.appendChild(empty);
+      return;
+    }
+    images.forEach(function (item) { container.appendChild(buildFrame(item, interactive)); });
+  }
+
+  function buildPrintSheet(opts) {
+    var interactive = !!(opts && opts.interactive);
+    var motivation = document.getElementById('motivation').value.trim();
+    var motivationNew = document.getElementById('motivationNew').value.trim();
+    var feedback = document.getElementById('feedback').value.trim();
+    var reflection = document.getElementById('reflection').value.trim();
+
+    var sheet = document.createElement('div');
+    sheet.className = 'print-sheet';
+
+    var dateStr = new Date().toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
+    var clientName = document.getElementById('clientName').value.trim();
+    var headerRight = clientName ? esc(clientName) + ' — ' + dateStr : dateStr;
+
+    var reflectionHtml = reflection
+      ? '<div class="p-reflection"><h3 class="p-col-title">Reflectie</h3><div class="p-text">' + esc(reflection) + '</div></div>'
+      : '';
+
+    sheet.innerHTML =
+      '<div class="p-head"><h1>Feedbackverwerking</h1><div class="p-date">' + headerRight + '</div></div>' +
+      '<div class="p-board">' +
+        '<div class="p-col original">' +
+          '<h3 class="p-col-title">01 — Origineel</h3>' +
+          '<div class="p-frame-row" data-slot="orig"></div>' +
+          '<div class="p-text">' + (esc(motivation) || '&nbsp;') + '</div>' +
+        '</div>' +
+        '<div class="p-col feedback">' +
+          '<h3 class="p-col-title">02 — Feedback</h3>' +
+          '<div class="p-text">' + (esc(feedback) || '&nbsp;') + '</div>' +
+        '</div>' +
+        '<div class="p-col new">' +
+          '<h3 class="p-col-title">03 — Eindresultaat</h3>' +
+          '<div class="p-frame-row" data-slot="new"></div>' +
+          '<div class="p-text">' + (esc(motivationNew) || '&nbsp;') + '</div>' +
+        '</div>' +
+      '</div>' +
+      reflectionHtml +
+      '<div class="p-footer">David Jenniskens — 500939455 — Klas 209 — Goldfizh Digital Agency</div>';
+
+    document.body.appendChild(sheet);
+    renderFrameRow(sheet.querySelector('[data-slot="orig"]'), originalImages, interactive);
+    renderFrameRow(sheet.querySelector('[data-slot="new"]'), newImages, interactive);
+    return sheet;
+  }
+
+  function waitForImages(root) {
+    var imgs = root.querySelectorAll('img');
+    var pending = Array.prototype.filter.call(imgs, function (img) { return !img.complete; });
+    if (!pending.length) return Promise.resolve();
+    return Promise.all(pending.map(function (img) {
+      return new Promise(function (resolve) {
+        img.onload = img.onerror = resolve;
+      });
+    }));
+  }
+
+  var previewBtn = document.getElementById('previewBtn');
+  var previewOverlay = document.getElementById('previewOverlay');
+  var previewSheetHost = document.getElementById('previewSheetHost');
+  var closePreviewBtn = document.getElementById('closePreview');
+
+  function closePreview() {
+    previewOverlay.hidden = true;
+    previewSheetHost.innerHTML = '';
+    previewSheetHost.style.width = '';
+    previewSheetHost.style.height = '';
+  }
+
+  function openPreview() {
+    var sheet = buildPrintSheet({ interactive: true });
+    sheet.classList.add('in-preview');
+    previewSheetHost.innerHTML = '';
+    previewSheetHost.appendChild(sheet);
+    waitForImages(sheet).then(function () {
+      var maxW = window.innerWidth * 0.94;
+      var maxH = window.innerHeight * 0.8;
+      var scale = Math.min(maxW / 1587, maxH / 1123, 1.4);
+      currentViewScale = scale;
+      sheet.style.transform = 'scale(' + scale + ')';
+      sheet.style.transformOrigin = 'top left';
+      previewSheetHost.style.width = (1587 * scale) + 'px';
+      previewSheetHost.style.height = (1123 * scale) + 'px';
+      previewOverlay.hidden = false;
+    });
+  }
+
+  previewBtn.addEventListener('click', openPreview);
+  closePreviewBtn.addEventListener('click', closePreview);
+  previewOverlay.addEventListener('click', function (e) {
+    if (e.target === previewOverlay) closePreview();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !previewOverlay.hidden) closePreview();
+  });
+
+  function runExport(triggerBtn) {
+    if (triggerBtn.disabled) return;
+    closePreview();
+    triggerBtn.disabled = true;
+    var originalLabel = triggerBtn.textContent;
+    triggerBtn.textContent = 'PDF wordt gemaakt…';
+
+    var sheet = buildPrintSheet();
+    var pdfBlob = null;
+
+    waitForImages(sheet).then(function () {
+      return html2canvas(sheet, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    }).then(function (canvas) {
+      document.body.removeChild(sheet);
+      var jsPDFLib = window.jspdf.jsPDF;
+      var pdf = new jsPDFLib({ orientation: 'landscape', unit: 'mm', format: 'a3' });
+      var imgData = canvas.toDataURL('image/jpeg', 0.94);
+      pdf.addImage(imgData, 'JPEG', 0, 0, 420, 297);
+      pdfBlob = pdf.output('blob');
+      return (window.claude && window.claude.use) ? window.claude.use('downloads') : null;
+    }).then(function (downloads) {
+      if (!downloads) {
+        showToast('PDF-download is hier niet beschikbaar.');
+        return;
+      }
+      var now = new Date();
+      var dd = String(now.getDate()).padStart(2, '0');
+      var mm = String(now.getMonth() + 1).padStart(2, '0');
+      var fname = 'feedbackverwerking-' + dd + '-' + mm + '-' + now.getFullYear() + '.pdf';
+      return downloads.save({ filename: fname, data: pdfBlob })
+        .then(function () { showToast('PDF opgeslagen.'); })
+        .catch(function (err) {
+          var code = err && err.code;
+          if (code === 'declined') return;
+          if (code === 'rate_limited') { showToast('Even wachten en opnieuw proberen.'); return; }
+          showToast('PDF-download is mislukt.');
+        });
+    }).catch(function () {
+      if (sheet.parentNode) document.body.removeChild(sheet);
+      showToast('Er ging iets mis bij het maken van de PDF.');
+    }).finally(function () {
+      triggerBtn.disabled = false;
+      triggerBtn.textContent = originalLabel;
+    });
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', function (e) { runExport(e.currentTarget); });
+  document.getElementById('previewExportBtn').addEventListener('click', function (e) { runExport(e.currentTarget); });
+})();
+</script>
