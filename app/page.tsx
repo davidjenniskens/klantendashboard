@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 async function getData() {
   const supabase = supabaseAdmin();
-  const { data: clients } = await supabase
+  const { data: clients, error } = await supabase
     .from("clients")
     .select("*")
     .order("last_updated", { ascending: false });
@@ -28,17 +28,26 @@ async function getData() {
     ).map((m) => ({ id: m.id, title: m.title, date: m.date }));
   }
 
-  return { clients: (clients as Client[]) ?? [], recentMomentsByClient };
+  return {
+    clients: (clients as Client[]) ?? [],
+    recentMomentsByClient,
+    error: error?.message ?? null,
+  };
 }
 
 export default async function DashboardPage() {
-  const { clients, recentMomentsByClient } = await getData();
+  const { clients, recentMomentsByClient, error } = await getData();
 
   return (
     <main className="max-w-6xl mx-auto px-6 py-10">
       <h1 className="font-display text-4xl mb-6">
         Hey <span className="italic">David</span>
       </h1>
+      {error && (
+        <p className="border border-accent text-accent text-sm px-4 py-3 mb-6">
+          Kon geen verbinding maken met de database: {error}
+        </p>
+      )}
       <BigDropzone variant="dashboard" />
       <ClientGrid clients={clients} recentMomentsByClient={recentMomentsByClient} />
     </main>
