@@ -26,6 +26,8 @@ export default function UpdateEmbed({
   const [viewMode, setViewMode] = useState<"edit" | "preview">(moment ? initialView : "edit");
   const [title, setTitle] = useState(moment?.title ?? "");
   const [bodyText, setBodyText] = useState(moment?.body_text ?? "");
+  const [reflection, setReflection] = useState(moment?.reflection_text ?? "");
+  const [reflectionOpen, setReflectionOpen] = useState(!!moment?.reflection_text);
   const [entries, setEntries] = useState<ImgEntry[]>(
     (moment?.original_images ?? []).map((url) => ({ url }))
   );
@@ -102,6 +104,7 @@ export default function UpdateEmbed({
         title: title.trim() || "Nieuwe update",
         body_text: bodyText,
         original_images: resolved,
+        reflection_text: reflection,
       }),
     });
   }
@@ -168,6 +171,13 @@ export default function UpdateEmbed({
                   className="w-full border border-line bg-paper-sunken object-contain"
                 />
               ))}
+            </div>
+          )}
+
+          {reflection && (
+            <div className="border-t border-line pt-4 flex flex-col gap-2">
+              <span className="text-xs uppercase tracking-wide text-ink-faint">Reflectie</span>
+              <p className="whitespace-pre-wrap leading-relaxed">{reflection}</p>
             </div>
           )}
         </div>
@@ -281,6 +291,24 @@ export default function UpdateEmbed({
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="border border-line bg-paper-raised p-3">
+        <button
+          type="button"
+          onClick={() => setReflectionOpen((v) => !v)}
+          className="border border-line px-3 py-2 text-sm"
+        >
+          {reflectionOpen ? "− Reflectie verbergen" : "+ Reflectie toevoegen"}
+        </button>
+        {reflectionOpen && (
+          <textarea
+            value={reflection}
+            onChange={(e) => setReflection(e.target.value)}
+            placeholder="Wat neem je hieruit mee?"
+            className="font-mono text-sm bg-paper-sunken border border-line px-3 py-2 w-full mt-3 min-h-[110px] outline-none focus:border-accent"
+          />
+        )}
       </div>
 
       <ConfirmDialog
