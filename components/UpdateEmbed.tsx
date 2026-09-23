@@ -8,6 +8,8 @@ import ConfirmDialog from "./ConfirmDialog";
 interface ImgEntry {
   url: string;
   file?: File;
+  w: number;
+  h: number | null;
 }
 
 export default function UpdateEmbed({
@@ -29,7 +31,7 @@ export default function UpdateEmbed({
   const [reflection, setReflection] = useState(moment?.reflection_text ?? "");
   const [reflectionOpen, setReflectionOpen] = useState(!!moment?.reflection_text);
   const [entries, setEntries] = useState<ImgEntry[]>(
-    (moment?.original_images ?? []).map((url) => ({ url }))
+    (moment?.original_images ?? []).map((url) => ({ url, w: 240, h: null }))
   );
   const [saving, setSaving] = useState(false);
   const [confirmBack, setConfirmBack] = useState(false);
@@ -42,7 +44,10 @@ export default function UpdateEmbed({
 
     if (!momentId) {
       // Nothing is saved yet — keep new screenshots as local previews only.
-      setEntries((prev) => [...prev, ...list.map((file) => ({ url: URL.createObjectURL(file), file }))]);
+      setEntries((prev) => [
+        ...prev,
+        ...list.map((file) => ({ url: URL.createObjectURL(file), file, w: 240, h: null })),
+      ]);
       return;
     }
 
@@ -53,12 +58,16 @@ export default function UpdateEmbed({
       const res = await fetch("/api/upload", { method: "POST", body: form });
       if (!res.ok) continue;
       const { url } = await res.json();
-      setEntries((prev) => [...prev, { url }]);
+      setEntries((prev) => [...prev, { url, w: 240, h: null }]);
     }
   }
 
   function removeImage(idx: number) {
     setEntries((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function handleImageResize(idx: number, w: number, h: number) {
+    setEntries((prev) => prev.map((en, i) => (i === idx ? { ...en, w, h } : en)));
   }
 
   async function ensureMomentId(): Promise<string> {
@@ -80,7 +89,7 @@ export default function UpdateEmbed({
   async function saveNow() {
     const id = await ensureMomentId();
 
-    const resolved: string[] = [];
+    const resolvedEntries: ImgEntry[] = [];
     for (const entry of entries) {
       if (entry.file) {
         const form = new FormData();
@@ -89,13 +98,14 @@ export default function UpdateEmbed({
         const res = await fetch("/api/upload", { method: "POST", body: form });
         if (res.ok) {
           const { url } = await res.json();
-          resolved.push(url);
+          resolvedEntries.push({ url, w: entry.w, h: entry.h });
         }
       } else {
-        resolved.push(entry.url);
+        resolvedEntries.push(entry);
       }
     }
-    setEntries(resolved.map((url) => ({ url })));
+    setEntries(resolvedEntries);
+    const resolved = resolvedEntries.map((e) => e.url);
 
     await fetch(`/api/moments/${id}`, {
       method: "PATCH",
@@ -161,16 +171,19 @@ export default function UpdateEmbed({
           {bodyText && <p className="whitespace-pre-wrap leading-relaxed">{bodyText}</p>}
 
           {entries.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {entries.map((entry, i) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={entry.url + i}
-                  src={entry.url}
-                  alt=""
-                  className="w-full border border-line bg-paper-sunken object-contain"
-                />
-              ))}
+            <div className="flex flex-col gap-2">
+              <p className="text-xs text-ink-faint">
+                Sleep het rode bolletje rechtsonder aan een screenshot om het te schalen.
+              </p>
+              <div className="flex flex-wrap gap-4">
+                {entries.map((entry, i) => (
+                  <ResizableImage
+                    key={entry.url + i}
+                    entry={entry}
+                    onResize={(w, h) => handleImageResize(i, w, h)}
+                  />
+                ))}
+              </div>
             </div>
           )}
 
@@ -318,6 +331,68 @@ export default function UpdateEmbed({
         danger
         onConfirm={handleBackWithoutSaving}
         onCancel={() => setConfirmBack(false)}
+      />
+    </div>
+  );
+}
+
+function ResizableImage({
+  entry,
+  onResize,
+}: {
+  entry: ImgEntry;
+  onResize: (w: number, h: number) => void;
+}) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const dragState = useRef<{ startX: number; startW: number; ratio: number; maxW: number } | null>(
+    null
+  );
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.stopPropagation();
+    const frame = frameRef.current;
+    if (!frame) return;
+    const rect = frame.getBoundingClientRect();
+    dragState.current = {
+      startX: e.clientX,
+      startW: rect.width,
+      ratio: rect.width / rect.height,
+      maxW: frame.parentElement?.clientWidth || Infinity,
+    };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragState.current) return;
+    const { startX, startW, ratio, maxW } = dragState.current;
+    const newW = Math.min(maxW, Math.max(40, startW + (e.clientX - startX)));
+    onResize(newW, newW / ratio);
+  }
+
+  function handlePointerUp() {
+    dragState.current = null;
+  }
+
+  return (
+    <div
+      ref={frameRef}
+      className="relative border border-line bg-paper-sunken"
+      style={{ width: entry.w, height: entry.h ?? "auto", maxWidth: "100%", flex: "0 0 auto" }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={entry.url}
+        alt=""
+        draggable={false}
+        style={{ display: "block", width: "100%", height: entry.h ? "100%" : "auto" }}
+      />
+      <div
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        className="absolute -right-[7px] -bottom-[7px] w-[14px] h-[14px] rounded-full bg-accent border-2 border-white shadow cursor-nwse-resize touch-none"
+        aria-label="Sleep om formaat aan te passen"
       />
     </div>
   );
