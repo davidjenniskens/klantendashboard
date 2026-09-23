@@ -551,9 +551,9 @@ export default function OntwerpdossierEmbed({
         </ImageColumn>
       </div>
 
-      <div className="border border-line bg-paper-raised p-3">
+      <div className="border border-line bg-paper-sunken p-3">
         <button
-          className="border border-line px-3 py-2 text-sm"
+          className="border border-line bg-paper-sunken px-3 py-2 text-sm"
           onClick={() => setReflectionOpen((v) => !v)}
         >
           {reflectionOpen ? "− Reflectie verbergen" : "+ Reflectie toevoegen"}

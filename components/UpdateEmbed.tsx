@@ -293,11 +293,11 @@ export default function UpdateEmbed({
         </div>
       </div>
 
-      <div className="border border-line bg-paper-raised p-3">
+      <div className="border border-line bg-paper-sunken p-3">
         <button
           type="button"
           onClick={() => setReflectionOpen((v) => !v)}
-          className="border border-line px-3 py-2 text-sm"
+          className="border border-line bg-paper-sunken px-3 py-2 text-sm"
         >
           {reflectionOpen ? "− Reflectie verbergen" : "+ Reflectie toevoegen"}
         </button>
